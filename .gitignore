@@ -30,3 +30,6 @@ executor/syscalls.h
 .gemini/
 gha-creds-*.json
 .agents/
+
+# personal cloud kcov-fuzz runbook — local notes, not for publication
+docs/harmonyos/RUNBOOK_cloud_kcov_fuzz.md

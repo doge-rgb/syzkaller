@@ -1,0 +1,56 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# OpenHarmony / HarmonyOS Data-access / Encryption Control (DEC) misc device.
+#
+# DEC manages per-token path-based access rules (sharefs data isolation). Its
+# ioctl handler parses an attacker-supplied struct dec_rule_s that embeds an
+# array of user pointers to path strings -> a rich, OpenHarmony-specific parse
+# surface not covered by mainline syzkaller.
+#
+# Source (OpenHarmony kernel patch set, not upstream):
+#   kernel_linux_common_modules/dec/dec_misc.c / dec_misc.h / dec_common.h
+#     #define DEC_IOCTL_BASE 's'
+#     #define SET_DEC_RULE_CMD        _IOWR('s', 1, struct dec_rule_s)
+#     ... DEL(2)/QUERY(3)/CHECK(4)/DESTROY(5) also _IOWR ...
+#     #define CONSTRAINT_DEC_RULE_CMD _IOW ('s', 6, struct dec_rule_s)
+#     #define DEL_DEC_RULE_BY_USER_CMD_IOWR('s', 7, struct dec_rule_s)
+#     #define SET_DEC_PREFIX_CMD      _IOWR('s', 8, struct dec_rule_s)
+#
+# Constants are hand-provided (OHOS UAPI headers are not in a mainline tree).
+meta noextract
+meta arches["amd64", "arm64"]
+
+include <uapi/linux/fcntl.h>
+
+resource fd_dec[fd]
+
+openat$dec(fd const[AT_FDCWD], file ptr[in, string["/dev/dec"]], flags const[O_RDWR], mode const[0]) fd_dec
+
+ioctl$SET_DEC_RULE(fd fd_dec, cmd const[SET_DEC_RULE_CMD], arg ptr[inout, dec_rule_s])
+ioctl$DEL_DEC_RULE(fd fd_dec, cmd const[DEL_DEC_RULE_CMD], arg ptr[inout, dec_rule_s])
+ioctl$QUERY_DEC_RULE(fd fd_dec, cmd const[QUERY_DEC_RULE_CMD], arg ptr[inout, dec_rule_s])
+ioctl$CHECK_DEC_RULE(fd fd_dec, cmd const[CHECK_DEC_RULE_CMD], arg ptr[inout, dec_rule_s])
+ioctl$DESTROY_DEC_RULE(fd fd_dec, cmd const[DESTROY_DEC_RULE_CMD], arg ptr[inout, dec_rule_s])
+ioctl$CONSTRAINT_DEC_RULE(fd fd_dec, cmd const[CONSTRAINT_DEC_RULE_CMD], arg ptr[in, dec_rule_s])
+ioctl$DEL_DEC_RULE_BY_USER(fd fd_dec, cmd const[DEL_DEC_RULE_BY_USER_CMD], arg ptr[inout, dec_rule_s])
+ioctl$SET_DEC_PREFIX(fd fd_dec, cmd const[SET_DEC_PREFIX_CMD], arg ptr[inout, dec_rule_s])
+
+dec_path_info {
+	path		ptr64[in, string[filename]]
+	path_len	len[path, int32]
+	mode		flags[dec_mode, int32]
+	ret_flag	int8
+} [size[24]]
+
+dec_rule_s {
+	tokenid		int64
+	timestamp	int64
+	path		array[dec_path_info, 8]
+	path_num	int32[0:8]
+	user_id		int32
+	reserved	array[int64, 64]
+	persist_flag	int8
+} [size[736]]
+
+dec_mode = DEC_READ, DEC_WRITE, DEC_PREFIX

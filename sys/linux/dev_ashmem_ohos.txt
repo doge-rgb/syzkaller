@@ -1,0 +1,25 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# OpenHarmony / HarmonyOS purgeable-ashmem ioctl extensions (CONFIG_PURGEABLE_ASHMEM).
+#
+# OpenHarmony keeps the (mainline-removed) ashmem driver and adds a "purgeable"
+# extension: userspace can mark a region purgeable and query/rebuild it. These
+# extra ioctls are OpenHarmony-specific and are layered on top of the mainline
+# ashmem descriptions in dev_ashmem.txt (which produce the fd_ashmem resource).
+#
+# Source (OpenHarmony kernel patch set, not upstream):
+#   kernel_linux_5.10/drivers/staging/android/uapi/ashmem.h
+#     #define ASHMEM_SET_PURGEABLE             _IO(__ASHMEMIOC, 11)
+#     #define ASHMEM_GET_PURGEABLE             _IO(__ASHMEMIOC, 12)
+#     #define PURGEABLE_ASHMEM_IS_PURGED       _IO(__ASHMEMIOC, 13)
+#     #define PURGEABLE_ASHMEM_REBUILD_SUCCESS _IO(__ASHMEMIOC, 14)
+#
+# Constants are hand-provided (OHOS UAPI headers are not in a mainline tree).
+meta noextract
+meta arches["amd64", "arm64"]
+
+ioctl$ASHMEM_SET_PURGEABLE(fd fd_ashmem, cmd const[ASHMEM_SET_PURGEABLE], arg const[0])
+ioctl$ASHMEM_GET_PURGEABLE(fd fd_ashmem, cmd const[ASHMEM_GET_PURGEABLE], arg const[0])
+ioctl$PURGEABLE_ASHMEM_IS_PURGED(fd fd_ashmem, cmd const[PURGEABLE_ASHMEM_IS_PURGED], arg const[0])
+ioctl$PURGEABLE_ASHMEM_REBUILD_SUCCESS(fd fd_ashmem, cmd const[PURGEABLE_ASHMEM_REBUILD_SUCCESS], arg const[0])

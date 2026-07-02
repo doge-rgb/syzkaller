@@ -1,0 +1,37 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# OpenHarmony / HarmonyOS eXecutable Permission Manager (XPM) misc device.
+#
+# XPM is a Huawei/OpenHarmony memory-security module that lets a process pin an
+# "execute-only" (XOM) memory region and tag pages with an owner id. It is one
+# of the OpenHarmony-specific kernel drivers reachable from a normal process and
+# is therefore useful fuzz surface that mainline syzkaller does not describe.
+#
+# Source (OpenHarmony kernel patch set, not upstream):
+#   kernel_linux_common_modules/xpm/core/xpm_misc_device.c
+#   kernel_linux_common_modules/xpm/core/xpm_misc_device.h
+#     #define XPM_SET_REGION  _IOW('x', 0x01, struct xpm_config)
+#     #define XPM_SET_OWNERID _IOW('x', 0x02, struct xpm_config)
+#     struct xpm_config { u64 region_addr; u64 region_length; u32 id_type; char ownerid[64]; }
+#
+# Constants are hand-provided (the OHOS UAPI headers are not in a mainline tree,
+# so syz-extract cannot see them). Values were computed from the struct above.
+meta noextract
+meta arches["amd64", "arm64"]
+
+include <uapi/linux/fcntl.h>
+
+resource fd_xpm[fd]
+
+openat$xpm(fd const[AT_FDCWD], file ptr[in, string["/dev/xpm"]], flags const[O_RDWR], mode const[0]) fd_xpm
+
+ioctl$XPM_SET_REGION(fd fd_xpm, cmd const[XPM_SET_REGION], arg ptr[in, xpm_config])
+ioctl$XPM_SET_OWNERID(fd fd_xpm, cmd const[XPM_SET_OWNERID], arg ptr[in, xpm_config])
+
+xpm_config {
+	region_addr	vma64
+	region_length	int64
+	id_type		int32
+	ownerid		array[int8, 64]
+} [size[88]]

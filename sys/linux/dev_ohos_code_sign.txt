@@ -1,0 +1,40 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# OpenHarmony / HarmonyOS code_sign misc device.
+#
+# The code_sign driver ingests certificate chains used to validate signed code.
+# ADD/REMOVE_CERT_CHAIN copy in a struct cert_chain_info that carries user
+# pointers + lengths to DER blobs -> attacker-influenced parse surface. On retail
+# images the ioctl is SELinux-gated (u:r:key_enable:), but on a syzkaller test
+# kernel with a permissive/relaxed policy it is directly reachable.
+#
+# Source (OpenHarmony kernel patch set, not upstream):
+#   kernel_linux_common_modules/code_sign/code_sign_ioctl.h / code_sign_misc.c
+#     #define ADD_CERT_CHAIN    _IOW('k', 1, struct cert_chain_info)
+#     #define REMOVE_CERT_CHAIN _IOW('k', 2, struct cert_chain_info)
+#     struct cert_chain_info { u32 signing_length; u32 issuer_length;
+#         u64 signing_ptr; u64 issuer_ptr; u32 path_len; s32 cert_type; u8 __reserved[32]; }
+#
+# Constants are hand-provided (OHOS UAPI headers are not in a mainline tree).
+meta noextract
+meta arches["amd64", "arm64"]
+
+include <uapi/linux/fcntl.h>
+
+resource fd_code_sign[fd]
+
+openat$code_sign(fd const[AT_FDCWD], file ptr[in, string["/dev/code_sign"]], flags const[O_RDWR], mode const[0]) fd_code_sign
+
+ioctl$ADD_CERT_CHAIN(fd fd_code_sign, cmd const[ADD_CERT_CHAIN], arg ptr[in, cert_chain_info])
+ioctl$REMOVE_CERT_CHAIN(fd fd_code_sign, cmd const[REMOVE_CERT_CHAIN], arg ptr[in, cert_chain_info])
+
+cert_chain_info {
+	signing_length	len[signing_ptr, int32]
+	issuer_length	len[issuer_ptr, int32]
+	signing_ptr	ptr64[in, array[int8]]
+	issuer_ptr	ptr64[in, array[int8]]
+	path_len	int32[0:3]
+	cert_type	int32
+	__reserved	array[int8, 32]
+} [size[64]]

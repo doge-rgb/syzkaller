@@ -36,6 +36,7 @@ import (
 	_ "github.com/google/syzkaller/vm/cuttlefish"
 	_ "github.com/google/syzkaller/vm/gce"
 	_ "github.com/google/syzkaller/vm/gvisor"
+	_ "github.com/google/syzkaller/vm/hdc"
 	_ "github.com/google/syzkaller/vm/isolated"
 	_ "github.com/google/syzkaller/vm/proxyapp"
 	_ "github.com/google/syzkaller/vm/qemu"
